@@ -1,0 +1,13 @@
+{
+  "appId": "com.shikai.browser",
+  "appName": "Shikai",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": true
+  },
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  },
+  "plugins": {}
+}

@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
+<meta name="theme-color" content="#070708"/>
+<title>Shikai</title>
+<link rel="stylesheet" href="app.css"/>
+</head>
+<body>
+<div class="ambient"></div>
+
+<!-- reusable leaf icon (defs) -->
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="leaf" viewBox="0 0 24 24">
+    <path fill="currentColor" d="M12 2C7 6 4 10 4 15a8 8 0 0 0 16 0c0-5-3-9-8-13zm0 4c3 2.5 5 5.5 5 9a5 5 0 0 1-10 0c0-3.5 2-6.5 5-9z"/>
+    <path fill="currentColor" d="M12 6v14" opacity=".4" stroke="currentColor" stroke-width="1"/>
+  </symbol>
+</svg>
+
+<!-- ══════════════════════ AUTH ══════════════════════ -->
+<section class="screen active" id="auth">
+  <div class="bonsai-stage">
+    <div class="leaves" id="leaves"></div>
+    <!-- crimson bonsai -->
+    <svg class="bonsai" viewBox="0 0 300 270" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="fol" cx="42%" cy="35%" r="70%">
+          <stop offset="0%" stop-color="#ff4d63"/>
+          <stop offset="55%" stop-color="#e0102b"/>
+          <stop offset="100%" stop-color="#7e0819"/>
+        </radialGradient>
+        <linearGradient id="trunk" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#5a3326"/><stop offset="100%" stop-color="#2e1a13"/>
+        </linearGradient>
+        <linearGradient id="pot" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#3a2018"/><stop offset="100%" stop-color="#1c0f0a"/>
+        </linearGradient>
+      </defs>
+      <!-- trunk + branches -->
+      <path d="M150 238 C150 210 132 202 138 176 C142 158 122 150 128 126"
+            stroke="url(#trunk)" stroke-width="13" stroke-linecap="round"/>
+      <path d="M150 220 C158 206 178 204 188 186" stroke="url(#trunk)" stroke-width="9" stroke-linecap="round"/>
+      <path d="M140 178 C128 168 110 170 96 156" stroke="url(#trunk)" stroke-width="8" stroke-linecap="round"/>
+      <path d="M132 132 C140 120 160 122 172 110" stroke="url(#trunk)" stroke-width="7" stroke-linecap="round"/>
+      <!-- foliage canopies -->
+      <ellipse cx="110" cy="120" rx="52" ry="34" fill="url(#fol)" opacity=".96"/>
+      <ellipse cx="192" cy="150" rx="46" ry="30" fill="url(#fol)" opacity=".96"/>
+      <ellipse cx="178" cy="96"  rx="44" ry="30" fill="url(#fol)" opacity=".96"/>
+      <ellipse cx="86"  cy="148" rx="38" ry="25" fill="url(#fol)" opacity=".92"/>
+      <ellipse cx="150" cy="92"  rx="40" ry="27" fill="url(#fol)" opacity=".9"/>
+      <!-- pot -->
+      <path d="M112 236 H188 L178 262 H122 Z" fill="url(#pot)"/>
+      <rect x="106" y="228" width="88" height="12" rx="4" fill="url(#pot)"/>
+    </svg>
+  </div>
+
+  <div class="auth-card">
+    <div class="brand"><svg class="leaf-ico"><use href="#leaf"/></svg><h1>shikai</h1></div>
+    <div class="brand-sub">browse · search · research</div>
+
+    <!-- step 1: email -->
+    <div class="step active" id="step-email">
+      <div class="field">
+        <label>Email address</label>
+        <input class="glass-input" id="email" type="email" inputmode="email"
+               placeholder="you@example.com" autocomplete="email" spellcheck="false"/>
+      </div>
+      <button class="btn" id="send-btn">Send verification code</button>
+    </div>
+
+    <!-- step 2: otp -->
+    <div class="step" id="step-otp">
+      <div class="field">
+        <label>Enter the 6-digit code sent to <span id="otp-email" style="color:var(--t1)"></span></label>
+        <div class="otp-row" id="otp-row">
+          <input class="otp-box" maxlength="1" inputmode="numeric" type="tel"/>
+          <input class="otp-box" maxlength="1" inputmode="numeric" type="tel"/>
+          <input class="otp-box" maxlength="1" inputmode="numeric" type="tel"/>
+          <input class="otp-box" maxlength="1" inputmode="numeric" type="tel"/>
+          <input class="otp-box" maxlength="1" inputmode="numeric" type="tel"/>
+          <input class="otp-box" maxlength="1" inputmode="numeric" type="tel"/>
+        </div>
+      </div>
+      <button class="btn" id="verify-btn">Verify &amp; enter</button>
+      <button class="btn ghost" id="resend-btn">Resend code</button>
+      <span class="back-link" id="back-email">← change email</span>
+    </div>
+
+    <div class="auth-msg info" id="auth-msg"></div>
+  </div>
+</section>
+
+<!-- ══════════════════════ SEARCH ══════════════════════ -->
+<section class="screen" id="search">
+  <div class="topbar">
+    <div class="logo"><svg class="leaf-ico"><use href="#leaf"/></svg>shikai</div>
+    <div class="grow"></div>
+  </div>
+  <div class="content">
+    <div class="searchbar">
+      <input id="q" type="search" placeholder="search the web…  or  /search a topic"
+             autocomplete="off" autocorrect="off" spellcheck="false"/>
+      <button class="go-btn" id="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></button>
+    </div>
+    <div class="hint"><b>/search</b> &lt;topic&gt; → deep AI research with sources</div>
+
+    <div class="stats" id="stats"></div>
+
+    <div class="loader" id="loader"><div class="lbar"></div><div class="ltxt" id="ltxt">searching…</div></div>
+
+    <!-- AI overview -->
+    <div class="ai-card" id="aiCard">
+      <div class="ai-answer" id="aiAnswer"></div>
+      <div class="ai-detail" id="aiDetail"></div>
+      <div class="ai-foot"><span class="pulse"></span><span id="aiModel">grok-4.20-multi-agent-medium</span></div>
+    </div>
+
+    <!-- deep research -->
+    <div class="research" id="research">
+      <div class="rsec" id="rPlan" style="display:none">
+        <h3><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/><circle cx="12" cy="12" r="4"/></svg>Research plan</h3>
+        <div id="rPlanBody"></div>
+      </div>
+      <div class="rsec" id="rStatus" style="display:none">
+        <div class="rstatus"><div class="lbar" style="width:90px"></div><span id="rStatusTxt">working…</span></div>
+      </div>
+      <div class="rsec" id="rReport" style="display:none">
+        <h3><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>Research report</h3>
+        <div class="report" id="rReportBody"></div>
+      </div>
+      <div class="rsec" id="rSources" style="display:none">
+        <h3><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg><span id="rSrcCount">Sources</span></h3>
+        <div id="rSourcesBody"></div>
+      </div>
+    </div>
+
+    <div id="results"></div>
+  </div>
+</section>
+
+<!-- ══════════════════════ BROWSER ══════════════════════ -->
+<section class="screen" id="browser">
+  <div class="topbar">
+    <div class="logo"><svg class="leaf-ico"><use href="#leaf"/></svg>browser</div>
+    <div class="grow"></div>
+  </div>
+  <div class="content">
+    <div class="urlbar">
+      <input id="url" type="url" inputmode="url" placeholder="enter a url or search…"
+             autocomplete="off" autocorrect="off" spellcheck="false"/>
+    </div>
+    <div class="btoolbar">
+      <div class="tool" id="bGo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>Go</div>
+      <div class="tool" id="bReload"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>Reload</div>
+      <div class="tool on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M8 20h8"/></svg>Desktop</div>
+      <div class="tool" id="bInspect"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/></svg>Inspect</div>
+      <div class="tool" id="bEdit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Edit page</div>
+      <div class="tool" id="bAI"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.9 4.6L18.5 9l-4.6 1.9L12 15l-1.9-4.1L5.5 9l4.6-1.4z"/></svg>AI editor</div>
+    </div>
+    <div class="frame-wrap">
+      <div class="frame-loading" id="frameLoading"></div>
+      <div class="frame-empty" id="frameEmpty">Enter a URL above and tap Go.<br/>Pages load as desktop site with inspect-element &amp; AI editing.</div>
+      <iframe id="browserFrame" referrerpolicy="no-referrer"></iframe>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════ ACCOUNT ══════════════════════ -->
+<section class="screen" id="account">
+  <div class="topbar"><div class="logo"><svg class="leaf-ico"><use href="#leaf"/></svg>account</div><div class="grow"></div></div>
+  <div class="content">
+    <div class="acct-card">
+      <div class="acct-avatar" id="acctAvatar">S</div>
+      <div class="acct-email" id="acctEmail">—</div>
+      <div class="acct-label">verified via email otp</div>
+    </div>
+    <div class="acct-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg><div class="grow">Search engines</div><span class="val">10 · parallel</span></div>
+    <div class="acct-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.9 4.6L18.5 9l-4.6 1.9L12 15l-1.9-4.1L5.5 9l4.6-1.4z"/></svg><div class="grow">AI model</div><span class="val">grok-4.20</span></div>
+    <div class="acct-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/><path d="M12 8v8M8 12h8"/></svg><div class="grow">Backend</div><span class="val">Shikai · HF</span></div>
+    <button class="btn ghost" id="signout" style="margin-top:18px">Sign out</button>
+  </div>
+</section>
+
+<!-- AI edit sheet -->
+<div class="backdrop" id="backdrop"></div>
+<div class="sheet" id="aiSheet">
+  <div class="sheet-grip"></div>
+  <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.9 4.6L18.5 9l-4.6 1.9L12 15l-1.9-4.1L5.5 9l4.6-1.4z"/></svg>AI page editor</h3>
+  <p>Describe how to change the current page. The AI returns CSS/JS that is injected live.</p>
+  <textarea id="aiEditInput" placeholder="e.g. make the background dark, hide all ads, enlarge the article text…"></textarea>
+  <div class="sheet-actions">
+    <button class="btn ghost" id="aiEditCancel" style="flex:1">Cancel</button>
+    <button class="btn" id="aiEditApply" style="flex:2">Apply with AI</button>
+  </div>
+</div>
+
+<!-- bottom nav -->
+<nav class="nav" id="nav" style="display:none">
+  <div class="nav-inner">
+    <div class="nav-item active" data-screen="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><span>Search</span>
+    </div>
+    <div class="nav-item" data-screen="browser">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20z"/></svg><span>Browser</span>
+    </div>
+    <div class="nav-item" data-screen="account">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg><span>Account</span>
+    </div>
+  </div>
+</nav>
+
+<script src="app.js"></script>
+</body>
+</html>

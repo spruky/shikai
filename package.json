@@ -1,0 +1,16 @@
+{
+  "name": "shikai",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Shikai — AI browser & multi-engine search",
+  "scripts": {
+    "sync": "cap sync"
+  },
+  "dependencies": {
+    "@capacitor/android": "6.1.2",
+    "@capacitor/core": "6.1.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "6.1.2"
+  }
+}
