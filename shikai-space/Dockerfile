@@ -2,6 +2,8 @@
 # ─────────────────────────────────────────────────────────────────────────────
 #  SHIKAI search engine — single-file Docker image for Hugging Face Spaces.
 #  All application code is embedded below. Just build & run; exposes :7860.
+#  Access is password-gated (X-Shikai-Key header or ?key=). Override via the
+#  API_PASSWORD env/secret in your Space settings.
 # ─────────────────────────────────────────────────────────────────────────────
 FROM python:3.11-slim
 
@@ -31,10 +33,27 @@ import requests as req_lib
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
+# ── Access gate: every route except /health and / requires the key ──────────
+_OPEN_PATHS = {"/", "/health"}
+@app.before_request
+def _require_key():
+    if request.method == "OPTIONS":            # let CORS preflight through
+        return None
+    if request.path in _OPEN_PATHS:
+        return None
+    key = request.headers.get("X-Shikai-Key", "") or request.args.get("key", "")
+    if not (key and hmac.compare_digest(key, API_PASSWORD)):
+        return jsonify({"error": "unauthorized", "hint": "missing/invalid access key"}), 401
+    return None
+
+
 # ── Config ───────────────────────────────────────────────────────────────────
 AI_KEY   = os.environ.get("AI_KEY",   "sk-iOD7c3rjnMuQcIB93qlPGQA08rOKfXNMYg5lkJ9hukJwhK6g")
 AI_URL   = os.environ.get("AI_URL",   "https://new.xinjianya.top/v1/chat/completions")
 AI_MODEL = os.environ.get("AI_MODEL", "grok-4.20-multi-agent-medium")
+
+# Backend access password (the app sends it AES-encrypted, decrypts at runtime)
+API_PASSWORD = os.environ.get("API_PASSWORD", "shikai_ff59b8f9acb1670e51")
 
 SMTP_USER = os.environ.get("SMTP_USER", "illusiongpt@gmail.com")
 SMTP_PASS = os.environ.get("SMTP_PASS", "cqhacwnvwiqvxsbl")

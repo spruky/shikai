@@ -6,6 +6,26 @@
 // Backend (Hugging Face Space). Change here if you fork the space.
 const API = "https://krazyguylol99-shikaihelp.hf.space";
 
+// ── Backend access key (AES-256-GCM encrypted at build time; decrypted at runtime).
+//    The plaintext password is never stored in the APK — only this ciphertext is.
+const _KBLOB = {
+  k:  "vssMypp7mLH137L6yOkrtWHHx+xtEAbJqDQlA4EG54Q=",
+  iv: "vaiILzZe+zLqmWgZ",
+  ct: "7p5rVL9vWm56hnOeZYEOdpCFxWOYnsD/FnA4GLcS5r1wJ1sHUfkzXcA="
+};
+let APIKEY = "";   // populated by decryptKey() before the app starts
+const _b64 = s => Uint8Array.from(atob(s), x => x.charCodeAt(0));
+async function decryptKey(){
+  try{
+    const key = await crypto.subtle.importKey("raw", _b64(_KBLOB.k), "AES-GCM", false, ["decrypt"]);
+    const pt  = await crypto.subtle.decrypt({name:"AES-GCM", iv:_b64(_KBLOB.iv)}, key, _b64(_KBLOB.ct));
+    APIKEY = new TextDecoder().decode(pt);
+  }catch(e){ console.error("key decrypt failed", e); }
+}
+// helpers: attach the key to every backend call
+const authHeaders = (extra) => Object.assign({ "X-Shikai-Key": APIKEY }, extra || {});
+const withKey = (url) => url + (url.includes("?") ? "&" : "?") + "key=" + encodeURIComponent(APIKEY);
+
 const $  = (s, r=document) => r.querySelector(s);
 const $$ = (s, r=document) => [...r.querySelectorAll(s)];
 const esc = s => String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
@@ -60,7 +80,7 @@ async function sendOTP(){
   const btn = $("#send-btn"); const old = btn.innerHTML;
   btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Sending…';
   try{
-    const r = await fetch(API+"/otp/send",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email})});
+    const r = await fetch(API+"/otp/send",{method:"POST",headers:authHeaders({"Content-Type":"application/json"}),body:JSON.stringify({email})});
     const d = await r.json();
     if(d.ok){
       $("#otp-email").textContent = email;
@@ -81,7 +101,7 @@ async function verifyOTP(){
   const btn=$("#verify-btn"); const old=btn.innerHTML;
   btn.disabled=true; btn.innerHTML='<span class="spin"></span> Verifying…';
   try{
-    const r=await fetch(API+"/otp/verify",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,code})});
+    const r=await fetch(API+"/otp/verify",{method:"POST",headers:authHeaders({"Content-Type":"application/json"}),body:JSON.stringify({email,code})});
     const d=await r.json();
     if(d.ok){ store.set(d.token,d.email); setMsg("Welcome to Shikai","ok"); setTimeout(enterApp,400); }
     else { setMsg(d.error||"Verification failed","err"); $$(".otp-box").forEach(b=>{b.value="";b.classList.remove("filled")}); $$(".otp-box")[0].focus(); }
@@ -113,7 +133,7 @@ function wireOTP(){
 
 /* ── SSE reader (fetch stream) ──────────────────────────────────────────── */
 async function sseStream(url, onEvent, signal){
-  const res = await fetch(url,{signal});
+  const res = await fetch(url,{signal, headers:authHeaders()});
   const reader = res.body.getReader();
   const dec = new TextDecoder();
   let buf="";
@@ -159,7 +179,7 @@ async function normalSearch(q){
   _searchCtrl = new AbortController();
   let data;
   try{
-    const r = await fetch(`${API}/search?q=${encodeURIComponent(q)}&n=8`,{signal:_searchCtrl.signal});
+    const r = await fetch(`${API}/search?q=${encodeURIComponent(q)}&n=8`,{signal:_searchCtrl.signal, headers:authHeaders()});
     data = await r.json();
   }catch(e){ $("#loader").classList.remove("show"); $("#results").innerHTML=`<div class="empty">network error — ${esc(e.message)}</div>`; return; }
   $("#loader").classList.remove("show");
@@ -262,7 +282,7 @@ function browse(){
   }
   $("#frameEmpty").style.display="none";
   $("#frameLoading").classList.add("show");
-  frame.src = `${API}/proxy?url=${encodeURIComponent(u)}`;
+  frame.src = withKey(`${API}/proxy?url=${encodeURIComponent(u)}`);
 }
 function go2search(query){
   $("#q").value=query; show("search"); go();
@@ -290,7 +310,7 @@ async function applyAIEdit(){
   const btn=$("#aiEditApply"); const old=btn.innerHTML; btn.disabled=true; btn.innerHTML='<span class="spin"></span> Thinking…';
   try{
     const context=await getFrameContext();
-    const r=await fetch(API+"/ai/edit",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({instruction,context})});
+    const r=await fetch(API+"/ai/edit",{method:"POST",headers:authHeaders({"Content-Type":"application/json"}),body:JSON.stringify({instruction,context})});
     const d=await r.json();
     if(d.css) frameCmd("applyCSS",{css:d.css});
     if(d.js)  frameCmd("applyJS",{js:d.js});
@@ -306,7 +326,8 @@ window.addEventListener("message",ev=>{
 });
 
 /* ── wire everything ────────────────────────────────────────────────────── */
-function init(){
+async function init(){
+  await decryptKey();
   spawnLeaves(); wireOTP();
 
   $("#send-btn").addEventListener("click",sendOTP);
