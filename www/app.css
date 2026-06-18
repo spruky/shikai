@@ -337,3 +337,21 @@ input,textarea{user-select:text;-webkit-user-select:text}
 .nav-item.active{color:var(--red2);background:var(--red-soft)}
 .nav-item.active svg{transform:translateY(-1px) scale(1.05)}
 .nav-item:active svg{transform:scale(.85)}
+
+/* ── splash card (replaces the old login card) ──────────────────────────── */
+.splash-card{
+  width:min(90vw,400px);margin:8px auto 40px;padding:30px 24px 34px;text-align:center;
+  background:var(--glass);backdrop-filter:blur(28px) saturate(1.5);
+  -webkit-backdrop-filter:blur(28px) saturate(1.5);
+  border:1px solid var(--glass-brd);border-radius:26px;
+  box-shadow:0 20px 60px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.06);
+  animation:cardUp .7s var(--spring) .2s both;cursor:pointer;
+}
+.splash-card .brand{margin-bottom:4px}
+.splash-card .brand h1{font-size:2rem}
+.splash-enter{
+  margin-top:22px;font-family:var(--mono);font-size:.72rem;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--t3);
+  animation:enterPulse 1.8s var(--ease) infinite;
+}
+@keyframes enterPulse{0%,100%{opacity:.4}50%{opacity:1}}

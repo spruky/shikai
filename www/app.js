@@ -62,73 +62,11 @@ function show(screen){
   $$(".nav-item").forEach(n=>n.classList.toggle("active", n.dataset.screen===screen));
 }
 function enterApp(){
+  const splash = document.getElementById("auth");
+  if(splash) splash.classList.remove("active");
   $("#nav").style.display = "flex";
   show("search");
-  $("#acctEmail").textContent = store.e || "—";
-  $("#acctAvatar").textContent = (store.e||"S")[0].toUpperCase();
-  setTimeout(()=>$("#q")?.focus(), 300);
-}
-
-/* ── auth: messages ─────────────────────────────────────────────────────── */
-const msg = $("#auth-msg");
-function setMsg(text, kind="info"){ msg.textContent=text; msg.className="auth-msg "+kind; }
-
-/* ── auth: send OTP ─────────────────────────────────────────────────────── */
-async function sendOTP(){
-  const email = $("#email").value.trim().toLowerCase();
-  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ setMsg("Enter a valid email address","err"); return; }
-  const btn = $("#send-btn"); const old = btn.innerHTML;
-  btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Sending…';
-  try{
-    const r = await fetch(API+"/otp/send",{method:"POST",headers:authHeaders({"Content-Type":"application/json"}),body:JSON.stringify({email})});
-    const d = await r.json();
-    if(d.ok){
-      $("#otp-email").textContent = email;
-      $("#step-email").classList.remove("active");
-      $("#step-otp").classList.add("active");
-      setMsg("Code sent — check your inbox","ok");
-      $$(".otp-box")[0].focus();
-    } else setMsg(d.error||"Failed to send code","err");
-  }catch(e){ setMsg("Network error — is the backend awake?","err"); }
-  btn.disabled=false; btn.innerHTML=old;
-}
-
-/* ── auth: verify OTP ───────────────────────────────────────────────────── */
-async function verifyOTP(){
-  const code = $$(".otp-box").map(b=>b.value).join("");
-  const email = $("#otp-email").textContent;
-  if(code.length!==6){ setMsg("Enter all 6 digits","err"); return; }
-  const btn=$("#verify-btn"); const old=btn.innerHTML;
-  btn.disabled=true; btn.innerHTML='<span class="spin"></span> Verifying…';
-  try{
-    const r=await fetch(API+"/otp/verify",{method:"POST",headers:authHeaders({"Content-Type":"application/json"}),body:JSON.stringify({email,code})});
-    const d=await r.json();
-    if(d.ok){ store.set(d.token,d.email); setMsg("Welcome to Shikai","ok"); setTimeout(enterApp,400); }
-    else { setMsg(d.error||"Verification failed","err"); $$(".otp-box").forEach(b=>{b.value="";b.classList.remove("filled")}); $$(".otp-box")[0].focus(); }
-  }catch(e){ setMsg("Network error","err"); }
-  btn.disabled=false; btn.innerHTML=old;
-}
-
-/* ── OTP box UX ─────────────────────────────────────────────────────────── */
-function wireOTP(){
-  const boxes = $$(".otp-box");
-  boxes.forEach((b,i)=>{
-    b.addEventListener("input",()=>{
-      b.value=b.value.replace(/\D/g,"").slice(0,1);
-      b.classList.toggle("filled", !!b.value);
-      if(b.value && i<boxes.length-1) boxes[i+1].focus();
-      if(boxes.every(x=>x.value)) verifyOTP();
-    });
-    b.addEventListener("keydown",e=>{
-      if(e.key==="Backspace" && !b.value && i>0){ boxes[i-1].focus(); boxes[i-1].value=""; boxes[i-1].classList.remove("filled"); }
-    });
-    b.addEventListener("paste",e=>{
-      e.preventDefault();
-      const t=(e.clipboardData.getData("text")||"").replace(/\D/g,"").slice(0,6);
-      t.split("").forEach((ch,j)=>{ if(boxes[j]){boxes[j].value=ch;boxes[j].classList.add("filled");} });
-      if(t.length===6) verifyOTP(); else boxes[Math.min(t.length,5)].focus();
-    });
-  });
+  setTimeout(()=>$("#q")?.focus(), 320);
 }
 
 /* ── SSE reader (fetch stream) ──────────────────────────────────────────── */
@@ -327,14 +265,8 @@ window.addEventListener("message",ev=>{
 
 /* ── wire everything ────────────────────────────────────────────────────── */
 async function init(){
-  await decryptKey();
-  spawnLeaves(); wireOTP();
-
-  $("#send-btn").addEventListener("click",sendOTP);
-  $("#email").addEventListener("keydown",e=>{if(e.key==="Enter")sendOTP();});
-  $("#verify-btn").addEventListener("click",verifyOTP);
-  $("#resend-btn").addEventListener("click",sendOTP);
-  $("#back-email").addEventListener("click",()=>{ $("#step-otp").classList.remove("active"); $("#step-email").classList.add("active"); setMsg(""); });
+  decryptKey();          // unlock backend key in the background (no login required)
+  spawnLeaves();
 
   $("#go").addEventListener("click",go);
   $("#q").addEventListener("keydown",e=>{if(e.key==="Enter")go();});
@@ -350,10 +282,12 @@ async function init(){
   $("#aiEditApply").addEventListener("click",applyAIEdit);
 
   $$(".nav-item").forEach(n=>n.addEventListener("click",()=>show(n.dataset.screen)));
-  $("#signout").addEventListener("click",()=>{ store.clear(); $("#nav").style.display="none"; show("auth"); $("#step-otp").classList.remove("active"); $("#step-email").classList.add("active"); $$(".otp-box").forEach(b=>{b.value="";b.classList.remove("filled")}); setMsg(""); spawnLeaves(); });
 
-  // auto-login
-  if(store.t) enterApp();
-  else show("auth");
+  // splash → app (no login). Tap to skip, otherwise auto-enter.
+  let entered=false;
+  const enter=()=>{ if(entered) return; entered=true; enterApp(); };
+  $("#splashEnter")?.addEventListener("click",enter);
+  document.getElementById("auth")?.addEventListener("click",enter);
+  setTimeout(enter, 1800);
 }
 document.addEventListener("DOMContentLoaded",init);

@@ -60,6 +60,12 @@ SMTP_PASS = os.environ.get("SMTP_PASS", "cqhacwnvwiqvxsbl")
 SMTP_HOST = "smtp.gmail.com"
 SMTP_PORT = 587
 
+# HTTPS email providers (work on Hugging Face, which blocks SMTP egress).
+# Set one of these as a Space secret; OTP will use it automatically.
+BREVO_API_KEY  = os.environ.get("BREVO_API_KEY", "")
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
+MAIL_FROM      = os.environ.get("MAIL_FROM", SMTP_USER)
+
 OTP_SECRET = os.environ.get("OTP_SECRET", "shikai-otp-" + SMTP_PASS)
 SESSION_SECRET = os.environ.get("SESSION_SECRET", "shikai-session-" + SMTP_PASS)
 
@@ -262,8 +268,17 @@ def run_search(q, n, engines):
     return results
 
 # ── AI helpers ───────────────────────────────────────────────────────────────
-def _ai_headers():
-    return {"Authorization": f"Bearer {AI_KEY}", "Content-Type": "application/json", "Accept": "text/event-stream"}
+def _ai_headers(stream=True):
+    h = {
+        "Authorization": f"Bearer {AI_KEY}",
+        "Content-Type": "application/json",
+        "Accept": "text/event-stream" if stream else "application/json",
+        # browser-like fingerprint — some upstreams 403 datacenter/bot requests
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Origin": "https://new.xinjianya.top",
+        "Referer": "https://new.xinjianya.top/",
+    }
+    return h
 
 def ai_stream(messages, max_tokens=600, temperature=0.3):
     """Generator yielding raw text deltas from the AI model."""
@@ -285,7 +300,7 @@ def ai_complete(messages, max_tokens=400, temperature=0.2):
     try:
         payload = {"model": AI_MODEL, "messages": messages, "stream": False,
                    "max_tokens": max_tokens, "temperature": temperature}
-        r = req_lib.post(AI_URL, json=payload, headers={"Authorization":f"Bearer {AI_KEY}","Content-Type":"application/json"}, timeout=60)
+        r = req_lib.post(AI_URL, json=payload, headers=_ai_headers(stream=False), timeout=60)
         return r.json()["choices"][0]["message"]["content"]
     except Exception as e:
         return ""
@@ -303,24 +318,64 @@ def _make_token(email):
     sig = hmac.new(SESSION_SECRET.encode(), payload.encode(), hashlib.sha256).hexdigest()[:32]
     return f"{payload}.{sig}"
 
-def send_otp_email(to_email, code):
-    body = f"""Your Shikai verification code is:
+def _otp_body(code):
+    return (f"Your Shikai verification code is:\n\n        {code}\n\n"
+            f"This code expires in 10 minutes.\n"
+            f"If you didn't request this, ignore this email.\n\n— Shikai Search")
 
-        {code}
+def _send_brevo(to_email, code):
+    r = req_lib.post("https://api.brevo.com/v3/smtp/email",
+        headers={"api-key": BREVO_API_KEY, "Content-Type": "application/json", "Accept": "application/json"},
+        json={"sender": {"name": "Shikai", "email": MAIL_FROM},
+              "to": [{"email": to_email}],
+              "subject": f"Shikai code: {code}",
+              "textContent": _otp_body(code)}, timeout=20)
+    if r.status_code not in (200, 201):
+        raise Exception(f"brevo {r.status_code}: {r.text[:160]}")
+    return "brevo"
 
-This code expires in 10 minutes.
-If you didn't request this, ignore this email.
+def _send_resend(to_email, code):
+    r = req_lib.post("https://api.resend.com/emails",
+        headers={"Authorization": f"Bearer {RESEND_API_KEY}", "Content-Type": "application/json"},
+        json={"from": f"Shikai <{MAIL_FROM}>", "to": [to_email],
+              "subject": f"Shikai code: {code}", "text": _otp_body(code)}, timeout=20)
+    if r.status_code not in (200, 201):
+        raise Exception(f"resend {r.status_code}: {r.text[:160]}")
+    return "resend"
 
-— Shikai Search"""
-    msg = MIMEText(body)
+def _send_smtp(to_email, code):
+    msg = MIMEText(_otp_body(code))
     msg["Subject"] = f"Shikai code: {code}"
     msg["From"] = f"Shikai <{SMTP_USER}>"
     msg["To"] = to_email
     ctx = ssl.create_default_context()
-    with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=20) as s:
-        s.ehlo(); s.starttls(context=ctx); s.ehlo()
-        s.login(SMTP_USER, SMTP_PASS)
-        s.sendmail(SMTP_USER, [to_email], msg.as_string())
+    last = None
+    for port, ssl_mode in ((465, True), (587, False)):
+        try:
+            if ssl_mode:
+                s = smtplib.SMTP_SSL(SMTP_HOST, port, timeout=15, context=ctx)
+            else:
+                s = smtplib.SMTP(SMTP_HOST, port, timeout=15); s.ehlo(); s.starttls(context=ctx); s.ehlo()
+            with s:
+                s.login(SMTP_USER, SMTP_PASS)
+                s.sendmail(SMTP_USER, [to_email], msg.as_string())
+            return f"smtp{port}"
+        except Exception as e:
+            last = f"{port}:{type(e).__name__}:{e}"
+    raise Exception(last or "smtp failed")
+
+def send_otp_email(to_email, code):
+    """Try HTTPS providers first (work on HF), then SMTP (off-HF)."""
+    errors = []
+    if BREVO_API_KEY:
+        try: return _send_brevo(to_email, code)
+        except Exception as e: errors.append(str(e))
+    if RESEND_API_KEY:
+        try: return _send_resend(to_email, code)
+        except Exception as e: errors.append(str(e))
+    try: return _send_smtp(to_email, code)
+    except Exception as e: errors.append(str(e))
+    raise Exception(" | ".join(errors))
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  ROUTES

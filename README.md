@@ -16,7 +16,7 @@ self-contained `Dockerfile`. Create a Docker Space and drop the Dockerfile in.
 - Email-OTP auth · in-app browser proxy (desktop UA + inspect element + AI page editor)
 
 ## App features
-- Email OTP sign-in (bonsai + falling leaves, glassmorphism)
+- No login — opens straight in (bonsai + falling-leaves splash, glassmorphism)
 - Web search with AI overview
 - `/search <topic>` → deep AI research with live sources (no overview)
 - In-app desktop browser: inspect element (eruda) + live AI page editor
