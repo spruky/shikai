@@ -12,7 +12,7 @@ The search engine "Shikai" lives in [`shikai-space/`](shikai-space/) as a single
 self-contained `Dockerfile`. Create a Docker Space and drop the Dockerfile in.
 
 - 10 search engines, queried in parallel
-- AI overview + deep research (`grok-4.20-multi-agent-medium`)
+- AI overview + deep research (`encrypted in-app`)
 - Email-OTP auth · in-app browser proxy (desktop UA + inspect element + AI page editor)
 
 ## App features

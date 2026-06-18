@@ -50,7 +50,7 @@ def _require_key():
 # ── Config ───────────────────────────────────────────────────────────────────
 AI_KEY   = os.environ.get("AI_KEY",   "sk-iOD7c3rjnMuQcIB93qlPGQA08rOKfXNMYg5lkJ9hukJwhK6g")
 AI_URL   = os.environ.get("AI_URL",   "https://new.xinjianya.top/v1/chat/completions")
-AI_MODEL = os.environ.get("AI_MODEL", "grok-4.20-multi-agent-medium")
+AI_MODEL = os.environ.get("AI_MODEL", "deepseek-chat")
 
 # Backend access password (the app sends it AES-encrypted, decrypts at runtime)
 API_PASSWORD = os.environ.get("API_PASSWORD", "shikai_ff59b8f9acb1670e51")
@@ -584,6 +584,11 @@ INJECT_JS = r"""
     if (d.shikaiCmd === 'edit')    { document.designMode = (document.designMode==='on'?'off':'on'); }
     if (d.shikaiCmd === 'applyCSS' && d.css){ var st=document.createElement('style'); st.textContent=d.css; document.head.appendChild(st); }
     if (d.shikaiCmd === 'applyJS'  && d.js ){ try{ (0,eval)(d.js); }catch(e){ console.error(e);} }
+    if (d.shikaiCmd === 'getContext'){
+      var txt='';
+      try{ txt=(document.body.innerText||'').replace(/\s+/g,' ').trim(); }catch(e){}
+      try{ parent.postMessage({shikai:'context', url: location.href, title: document.title, text: txt.slice(0,8000)}, '*'); }catch(e){}
+    }
   });
 })();
 """
